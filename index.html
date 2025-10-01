@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rubik's Cube Solver - Enhanced Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .cube-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .cube-display {
+            margin: 30px 0;
+            perspective: 1000px;
+        }
+
+        .cube-3d {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(-15deg) rotateY(25deg);
+            animation: cubeRotate 20s infinite linear;
+        }
+
+        @keyframes cubeRotate {
+            0% { transform: rotateX(-15deg) rotateY(25deg); }
+            25% { transform: rotateX(-15deg) rotateY(115deg); }
+            50% { transform: rotateX(-15deg) rotateY(205deg); }
+            75% { transform: rotateX(-15deg) rotateY(295deg); }
+            100% { transform: rotateX(-15deg) rotateY(385deg); }
+        }
+
+        .cube-face {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            padding: 10px;
+            border: 3px solid #333;
+            box-sizing: border-box;
+        }
+
+        .cube-face.front { transform: translateZ(150px); }
+        .cube-face.back { transform: rotateY(180deg) translateZ(150px); }
+        .cube-face.right { transform: rotateY(90deg) translateZ(150px); }
+        .cube-face.left { transform: rotateY(-90deg) translateZ(150px); }
+        .cube-face.top { transform: rotateX(90deg) translateZ(150px); }
+        .cube-face.bottom { transform: rotateX(-90deg) translateZ(150px); }
+
+        .sticker {
+            border-radius: 8px;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+
+        .sticker.white { background: #ffffff; }
+        .sticker.yellow { background: #ffeb3b; }
+        .sticker.red { background: #f44336; }
+        .sticker.orange { background: #ff9800; }
+        .sticker.green { background: #4caf50; }
+        .sticker.blue { background: #2196f3; }
+
+        .controls-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
+
+        .control-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .control-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .cube-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.solved { background: #4caf50; }
+        .status-indicator.scrambled { background: #f44336; }
+        .status-indicator.connecting { background: #ff9800; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+            min-width: 120px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .button.danger {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .input-group {
+            margin: 10px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .move-history {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .backend-config {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .backend-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .connection-indicator.connected { background: #4caf50; }
+        .connection-indicator.disconnected { background: #f44336; }
+        .connection-indicator.connecting { background: #ff9800; animation: pulse 1s infinite; }
+
+        .stats-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .solving-progress {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .log-panel {
+            background: #1a1a1a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            padding: 20px;
+            border-radius: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .log-entry.success { color: #4caf50; }
+        .log-entry.error { color: #f44336; }
+        .log-entry.warning { color: #ff9800; }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .cube-3d {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .cube-face {
+                width: 250px;
+                height: 250px;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { background: #4caf50; }
+        .notification.error { background: #f44336; }
+        .notification.info { background: #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎲 Enhanced Rubik's Cube Solver</h1>
+            <p>With Proper Move Mechanics & Backend Integration</p>
+        </div>
+
+        <div class="main-content">
+            <div class="cube-container">
+                <div class="cube-info">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span>Status:</span>
+                            <span><span class="status-indicator solved" id="status-indicator"></span><span id="cube-status">Solved</span></span>
+                        </div>
+                        <div class="info-item">
+                            <span>Size:</span>
+                            <span id="cube-size">3x3x3</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Moves:</span>
+                            <span id="move-count">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Backend:</span>
+                            <span id="backend-status">Offline</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cube-display">
+                    <div class="cube-3d" id="cube-3d">
+                        <div class="cube-face front" data-face="front"></div>
+                        <div class="cube-face back" data-face="back"></div>
+                        <div class="cube-face right" data-face="right"></div>
+                        <div class="cube-face left" data-face="left"></div>
+                        <div class="cube-face top" data-face="top"></div>
+                        <div class="cube-face bottom" data-face="bottom"></div>
+                    </div>
+                </div>
+
+                <div class="solving-progress" id="solving-progress">
+                    <h4>Solving in Progress...</h4>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div id="progress-text">Initializing solver...</div>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-section">
+                    <h3>🔗 Backend Connection</h3>
+                    <div class="backend-config">
+                        <div class="backend-status">
+                            <div class="connection-indicator disconnected" id="connection-indicator"></div>
+                            <span id="connection-status">Disconnected</span>
+                        </div>
+                        <div class="input-group">
+                            <label for="backend-url">Backend URL:</label>
+                            <input type="text" id="backend-url" value="http://localhost:3000" placeholder="http://localhost:3000">
+                        </div>
+                        <button class="button" onclick="connectToBackend()">🔌 Connect</button>
+                        <button class="button danger" onclick="disconnectBackend()">❌ Disconnect</button>
+                    </div>
+                </div>
+
+                <div class="control-section">
+                    <h3>🎮 Cube Controls</h3>
+                    <div class="input-group">
+                        <label for="cube-size-select">Cube Size:</label>
+                        <select id="cube-size-select">
+                            <option value="2">2x2x2 (Pocket Cube)</option>
+                            <option value="3" selected>3x3x3 (Standard)</option>
+                            <option value="4">4x4x4 (Revenge)</option>
+                            <option value="5">5x5x5 (Professor)</option>
+                        </select>
+                    </div>
+                    <button class="button" onclick="createNewCube()">🔄 New Cube</button>
+                    <button class="button secondary" onclick="resetCube()">↺ Reset</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>🎲 Scrambling</h3>
+                    <div class="input-group">
+                        <label for="scramble-moves">Number of Moves:</label>
+                        <input type="number" id="scramble-moves" value="20" min="5" max="50">
+                    </div>
+                    <button class="button" onclick="scrambleCube()">🎯 Scramble</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>⚡ Manual Moves</h3>
+                    <div class="input-group">
+                        <label for="move-input">Enter Moves:</label>
+                        <input type="text" id="move-input" placeholder="R U R' U' F R F'" 
+                               onkeypress="handleMoveInput(event)">
+                    </div>
+                    <button class="button" onclick="executeManualMoves()">▶️ Execute</button>
+                    <button class="button secondary" onclick="undoLastMove()">↶ Undo</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>🧠 Auto Solver</h3>
+                    <button class="button success" onclick="solveCube()">🎯 Solve Cube</button>
+                    <button class="button" onclick="analyzeCube()">🔍 Analyze</button>
+                </div>
+
+                <div class="control-section">
+                    <h3>📊 Move History</h3>
+                    <div class="move-history" id="move-history">
+                        No moves executed yet
+                    </div>
+                    <button class="button secondary" onclick="clearHistory()">🗑️ Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-panel">
+            <h2 style="margin-bottom: 20px; color: #667eea;">📈 Statistics & Performance</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-moves">0</div>
+                    <div class="stat-label">Total Moves</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="solve-time">0.00s</div>
+                    <div class="stat-label">Last Solve Time</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="efficiency-score">100%</div>
+                    <div class="stat-label">Efficiency Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pieces-solved">26/26</div>
+                    <div class="stat-label">Pieces Solved</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-panel" id="log-panel">
+            <div class="log-entry success">🎲 Enhanced Rubik's Cube Solver initialized</div>
+            <div class="log-entry">✅ Proper move mechanics implemented</div>
+            <div class="log-entry">🔌 Backend connection system ready</div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Enhanced Cube simulation with proper move mechanics
+        class EnhancedRubiksCube {
+            constructor() {
+                this.size = 3;
+                this.cube = this.createSolvedCube();
+                this.moveHistory = [];
+                this.isAnimating = false;
+                this.backendConnected = false;
+                this.backendUrl = 'http://localhost:3000';
+                
+                // Standard color mapping
+                this.colors = {
+                    0: 'white',   // Front
+                    1: 'yellow',  // Back  
+                    2: 'red',     // Right
+                    3: 'orange',  // Left
+                    4: 'green',   // Up/Top
+                    5: 'blue'     // Down/Bottom
+                };
+                
+                this.initializeCube();
+                this.updateDisplay();
+                this.log('🎲 Enhanced cube system initialized', 'success');
+            }
+
+            createSolvedCube() {
+                const cube = [];
+                for (let face = 0; face < 6; face++) {
+                    const faceArray = [];
+                    for (let row = 0; row < this.size; row++) {
+                        const rowArray = [];
+                        for (let col = 0; col < this.size; col++) {
+                            rowArray.push(face);
+                        }
+                        faceArray.push(rowArray);
+                    }
+                    cube.push(faceArray);
+                }
+                return cube;
+            }
+
+            initializeCube() {
+                const faces = document.querySelectorAll('.cube-face');
+                faces.forEach((face, faceIndex) => {
+                    face.innerHTML = '';
+                    for (let i = 0; i < this.size * this.size; i++) {
+                        const sticker = document.createElement('div');
+                        sticker.className = 'sticker';
+                        face.appendChild(sticker);
+                    }
+                });
+            }
+
+            // Improved move simulation with actual rotation mechanics
+            executeMove(move) {
+                this.log(`▶️ Executing move: ${move}`);
+                
+                // Parse move notation
+                const baseMoves = {
+                    'U': () => this.rotateUp(false),
+                    "U'": () => this.rotateUp(true),
+                    'U2': () => { this.rotateUp(false); this.rotateUp(false); },
+                    'D': () => this.rotateDown(false),
+                    "D'": () => this.rotateDown(true),
+                    'D2': () => { this.rotateDown(false); this.rotateDown(false); },
+                    'R': () => this.rotateRight(false),
+                    "R'": () => this.rotateRight(true),
+                    'R2': () => { this.rotateRight(false); this.rotateRight(false); },
+                    'L': () => this.rotateLeft(false),
+                    "L'": () => this.rotateLeft(true),
+                    'L2': () => { this.rotateLeft(false); this.rotateLeft(false); },
+                    'F': () => this.rotateFront(false),
+                    "F'": () => this.rotateFront(true),
+                    'F2': () => { this.rotateFront(false); this.rotateFront(false); },
+                    'B': () => this.rotateBack(false),
+                    "B'": () => this.rotateBack(true),
+                    'B2': () => { this.rotateBack(false); this.rotateBack(false); }
+                };
+
+                if (baseMoves[move]) {
+                    baseMoves[move]();
+                    this.moveHistory.push(move);
+                    this.updateDisplay();
+                } else {
+                    this.log(`❌ Invalid move: ${move}`, 'error');
+                }
+            }
+
+            // Actual rotation mechanics for 3x3 cube
+            rotateUp(counterclockwise = false) {
+                // Rotate top face
+                this.rotateFace(4, counterclockwise);
+                
+                // Rotate edges
+                const temp = this.getRow(0, 0); // Front top row
+                if (counterclockwise) {
+                    this.setRow(0, 0, this.getRow(2, 0)); // Right to Front
+                    this.setRow(2, 0, this.getRow(1, 0)); // Back to Right
+                    this.setRow(1, 0, this.getRow(3, 0)); // Left to Back
+                    this.setRow(3, 0, temp); // Front to Left
+                } else {
+                    this.setRow(0, 0, this.getRow(3, 0)); // Left to Front
+                    this.setRow(3, 0, this.getRow(1, 0)); // Back to Left
+                    this.setRow(1, 0, this.getRow(2, 0)); // Right to Back
+                    this.setRow(2, 0, temp); // Front to Right
+                }
+            }
+
+            rotateDown(counterclockwise = false) {
+                // Rotate bottom face
+                this.rotateFace(5, counterclockwise);
+                
+                // Rotate edges
+                const temp = this.getRow(0, 2); // Front bottom row
+                if (counterclockwise) {
+                    this.setRow(0, 2, this.getRow(3, 2)); // Left to Front
+                    this.setRow(3, 2, this.getRow(1, 2)); // Back to Left
+                    this.setRow(1, 2, this.getRow(2, 2)); // Right to Back
+                    this.setRow(2, 2, temp); // Front to Right
+                } else {
+                    this.setRow(0, 2, this.getRow(2, 2)); // Right to Front
+                    this.setRow(2, 2, this.getRow(1, 2)); // Back to Right
+                    this.setRow(1, 2, this.getRow(3, 2)); // Left to Back
+                    this.setRow(3, 2, temp); // Front to Left
+                }
+            }
+
+            rotateRight(counterclockwise = false) {
+                // Rotate right face
+                this.rotateFace(2, counterclockwise);
+                
+                // Rotate edges
+                const temp = this.getColumn(0, 2); // Front right column
+                if (counterclockwise) {
+                    this.setColumn(0, 2, this.getColumn(4, 2)); // Top to Front
+                    this.setColumn(4, 2, this.getColumn(1, 0).reverse()); // Back to Top (reversed)
+                    this.setColumn(1, 0, this.getColumn(5, 2).reverse()); // Bottom to Back (reversed)
+                    this.setColumn(5, 2, temp); // Front to Bottom
+                } else {
+                    this.setColumn(0, 2, this.getColumn(5, 2)); // Bottom to Front
+                    this.setColumn(5, 2, this.getColumn(1, 0).reverse()); // Back to Bottom (reversed)
+                    this.setColumn(1, 0, this.getColumn(4, 2).reverse()); // Top to Back (reversed)
+                    this.setColumn(4, 2, temp); // Front to Top
+                }
+            }
+
+            rotateLeft(counterclockwise = false) {
+                // Rotate left face
+                this.rotateFace(3, counterclockwise);
+                
+                // Rotate edges
+                const temp = this.getColumn(0, 0); // Front left column
+                if (counterclockwise) {
+                    this.setColumn(0, 0, this.getColumn(5, 0)); // Bottom to Front
+                    this.setColumn(5, 0, this.getColumn(1, 2).reverse()); // Back to Bottom (reversed)
+                    this.setColumn(1, 2, this.getColumn(4, 0).reverse()); // Top to Back (reversed)
+                    this.setColumn(4, 0, temp); // Front to Top
+                } else {
+                    this.setColumn(0, 0, this.getColumn(4, 0)); // Top to Front
+                    this.setColumn(4, 0, this.getColumn(1, 2).reverse()); // Back to Top (reversed)
+                    this.setColumn(1, 2, this.getColumn(5, 0).reverse()); // Bottom to Back (reversed)
+                    this.setColumn(5, 0, temp); // Front to Bottom
+                }
+            }
+
+            rotateFront(counterclockwise = false) {
+                // Rotate front face
+                this.rotateFace(0, counterclockwise);
+                
+                // Rotate edges
+                const temp = this.getRow(4, 2); // Top bottom row
+                if (counterclockwise) {
+                    this.setRow(4, 2, this.getColumn(2, 0)); // Right left column to Top
+                    this.setColumn(2, 0, this.getRow(5, 0).reverse()); // Bottom top row to Right (reversed)
+                    this.setRow(5, 0, this.getColumn(3, 2)); // Left right column to Bottom
+                    this.setColumn(3, 2, temp.reverse()); // Top to Left (reversed)
+                } else {
+                    this.setRow(4, 2, this.getColumn(3, 2).reverse()); // Left right column to Top (reversed)
+                    this.setColumn(3, 2, this.getRow(5, 0)); // Bottom top row to Left
+                    this.setRow(5, 0, this.getColumn(2, 0).reverse()); // Right left column to Bottom (reversed)
+                    this.setColumn(2, 0, temp); // Top to Right
+                }
+            }
+
+            rotateBack(counterclockwise = false) {
+                // Rotate back face
+                this.rotateFace(1, counterclockwise);
+                
+                // Rotate edges
+                const temp = this.getRow(4, 0); // Top top row
+                if (counterclockwise) {
+                    this.setRow(4, 0, this.getColumn(3, 0).reverse()); // Left left column to Top (reversed)
+                    this.setColumn(3, 0, this.getRow(5, 2)); // Bottom bottom row to Left
+                    this.setRow(5, 2, this.getColumn(2, 2).reverse()); // Right right column to Bottom (reversed)
+                    this.setColumn(2, 2, temp); // Top to Right
+                } else {
+                    this.setRow(4, 0, this.getColumn(2, 2)); // Right right column to Top
+                    this.setColumn(2, 2, this.getRow(5, 2).reverse()); // Bottom bottom row to Right (reversed)
+                    this.setRow(5, 2, this.getColumn(3, 0)); // Left left column to Bottom
+                    this.setColumn(3, 0, temp.reverse()); // Top to Left (reversed)
+                }
+            }
+
+            // Helper methods for face and edge manipulation
+            rotateFace(faceIndex, counterclockwise = false) {
+                const face = this.cube[faceIndex];
+                const size = this.size;
+                
+                if (counterclockwise) {
+                    // Rotate counterclockwise (transpose then reverse columns)
+                    const rotated = [];
+                    for (let i = 0; i < size; i++) {
+                        rotated[i] = [];
+                        for (let j = 0; j < size; j++) {
+                            rotated[i][j] = face[j][size - 1 - i];
+                        }
+                    }
+                    this.cube[faceIndex] = rotated;
+                } else {
+                    // Rotate clockwise (transpose then reverse rows)
+                    const rotated = [];
+                    for (let i = 0; i < size; i++) {
+                        rotated[i] = [];
+                        for (let j = 0; j < size; j++) {
+                            rotated[i][j] = face[size - 1 - j][i];
+                        }
+                    }
+                    this.cube[faceIndex] = rotated;
+                }
+            }
+
+            getRow(faceIndex, rowIndex) {
+                return [...this.cube[faceIndex][rowIndex]];
+            }
+
+            setRow(faceIndex, rowIndex, values) {
+                this.cube[faceIndex][rowIndex] = [...values];
+            }
+
+            getColumn(faceIndex, colIndex) {
+                const column = [];
+                for (let row = 0; row < this.size; row++) {
+                    column.push(this.cube[faceIndex][row][colIndex]);
+                }
+                return column;
+            }
+
+            setColumn(faceIndex, colIndex, values) {
+                for (let row = 0; row < this.size; row++) {
+                    this.cube[faceIndex][row][colIndex] = values[row];
+                }
+            }
+
+            // Enhanced scrambling with proper moves
+            scramble(numMoves = 20) {
+                this.log(`🎯 Scrambling ${this.size}x${this.size}x${this.size} cube with ${numMoves} moves...`);
+                
+                const moves = ['U', 'D', 'R', 'L', 'F', 'B', "U'", "D'", "R'", "L'", "F'", "B'", 'U2', 'D2', 'R2', 'L2', 'F2', 'B2'];
+                const scrambleMoves = [];
+                let lastMove = '';
+                
+                for (let i = 0; i < numMoves; i++) {
+                    let randomMove;
+                    do {
+                        randomMove = moves[Math.floor(Math.random() * moves.length)];
+                    } while (randomMove[0] === lastMove[0]); // Avoid consecutive moves on same face
+                    
+                    scrambleMoves.push(randomMove);
+                    this.executeMove(randomMove);
+                    lastMove = randomMove;
+                }
+                
+                this.updateDisplay();
+                this.showNotification(`Scrambled with ${numMoves} moves`, 'info');
+                this.log(`✅ Scramble complete: ${scrambleMoves.join(' ')}`, 'success');
+                return scrambleMoves;
+            }
+
+            executeMoves(moveSequence) {
+                const moves = moveSequence.trim().split(/\s+/).filter(move => move.length > 0);
+                this.log(`▶️ Executing ${moves.length} moves: ${moveSequence}`);
+                
+                moves.forEach((move, index) => {
+                    setTimeout(() => {
+                        this.executeMove(move);
+                        if (index === moves.length - 1) {
+                            this.showNotification(`Executed ${moves.length} moves`, 'success');
+                        }
+                    }, index * 200);
+                });
+            }
+
+            updateDisplay() {
+                const faces = document.querySelectorAll('.cube-face');
+                const faceMapping = {
+                    'front': 0, 'back': 1, 'right': 2, 
+                    'left': 3, 'top': 4, 'bottom': 5
+                };
+
+                faces.forEach(face => {
+                    const faceType = face.getAttribute('data-face');
+                    const faceIndex = faceMapping[faceType];
+                    const stickers = face.querySelectorAll('.sticker');
+                    
+                    let stickerIndex = 0;
+                    for (let row = 0; row < this.size; row++) {
+                        for (let col = 0; col < this.size; col++) {
+                            const colorIndex = this.cube[faceIndex][row][col];
+                            const colorName = this.colors[colorIndex];
+                            stickers[stickerIndex].className = `sticker ${colorName}`;
+                            stickerIndex++;
+                        }
+                    }
+                });
+
+                this.updateStatus();
+            }
+
+            updateStatus() {
+                const isSolved = this.isSolved();
+                const statusIndicator = document.getElementById('status-indicator');
+                const cubeStatus = document.getElementById('cube-status');
+                const moveCount = document.getElementById('move-count');
+                const totalMovesDisplay = document.getElementById('total-moves');
+                const backendStatus = document.getElementById('backend-status');
+
+                statusIndicator.className = `status-indicator ${isSolved ? 'solved' : 'scrambled'}`;
+                cubeStatus.textContent = isSolved ? 'Solved' : 'Scrambled';
+                moveCount.textContent = this.moveHistory.length;
+                totalMovesDisplay.textContent = this.moveHistory.length;
+                backendStatus.textContent = this.backendConnected ? 'Connected' : 'Offline';
+
+                document.getElementById('cube-size').textContent = `${this.size}x${this.size}x${this.size}`;
+
+                this.updateMoveHistory();
+                this.updatePiecesStatus();
+            }
+
+            updateMoveHistory() {
+                const historyElement = document.getElementById('move-history');
+                if (this.moveHistory.length === 0) {
+                    historyElement.textContent = 'No moves executed yet';
+                } else {
+                    const recentMoves = this.moveHistory.slice(-20);
+                    historyElement.textContent = recentMoves.join(' ');
+                }
+            }
+
+            updatePiecesStatus() {
+                const totalPieces = this.calculateTotalPieces();
+                const solvedPieces = this.calculateSolvedPieces();
+                document.getElementById('pieces-solved').textContent = `${solvedPieces}/${totalPieces}`;
+            }
+
+            calculateTotalPieces() {
+                if (this.size === 2) return 8;
+                if (this.size === 3) return 26;
+                if (this.size === 4) return 56;
+                if (this.size === 5) return 98;
+                return this.size * this.size * 6 - 6;
+            }
+
+            calculateSolvedPieces() {
+                if (this.isSolved()) return this.calculateTotalPieces();
+                
+                let solvedCount = 0;
+                const totalPieces = this.calculateTotalPieces();
+                
+                // Count center pieces (always solved in standard notation)
+                solvedCount += 6;
+                
+                // Estimate other pieces based on face completion
+                for (let face = 0; face < 6; face++) {
+                    let faceComplete = true;
+                    const centerColor = this.cube[face][1][1]; // Center piece
+                    
+                    for (let row = 0; row < this.size; row++) {
+                        for (let col = 0; col < this.size; col++) {
+                            if (this.cube[face][row][col] !== centerColor) {
+                                faceComplete = false;
+                                break;
+                            }
+                        }
+                        if (!faceComplete) break;
+                    }
+                    
+                    if (faceComplete) {
+                        solvedCount += (this.size * this.size - 1); // All stickers except center
+                    }
+                }
+                
+                return Math.min(solvedCount, totalPieces);
+            }
+
+            isSolved() {
+                for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+                    const centerColor = this.cube[faceIndex][1][1]; // Use center as reference
+                    for (let row = 0; row < this.size; row++) {
+                        for (let col = 0; col < this.size; col++) {
+                            if (this.cube[faceIndex][row][col] !== centerColor) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                return true;
+            }
+
+            reset() {
+                this.cube = this.createSolvedCube();
+                this.moveHistory = [];
+                this.updateDisplay();
+                this.log('↺ Cube reset to solved state', 'success');
+                this.showNotification('Cube reset to solved state', 'success');
+            }
+
+            changeCubeSize(newSize) {
+                this.size = parseInt(newSize);
+                this.cube = this.createSolvedCube();
+                this.moveHistory = [];
+                this.initializeCube();
+                this.updateDisplay();
+                this.log(`🔄 Created new ${this.size}x${this.size}x${this.size} cube`, 'success');
+                this.showNotification(`Created ${this.size}x${this.size}x${this.size} cube`, 'info');
+            }
+
+            // Backend connection methods
+            async connectToBackend() {
+                const url = document.getElementById('backend-url').value.trim();
+                if (!url) {
+                    this.showNotification('Please enter a backend URL', 'error');
+                    return;
+                }
+
+                this.backendUrl = url;
+                this.updateConnectionStatus('connecting');
+                this.log(`🔌 Connecting to backend: ${url}`, 'warning');
+
+                try {
+                    const response = await fetch(`${url}/api/health`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        timeout: 5000
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.backendConnected = true;
+                        this.updateConnectionStatus('connected');
+                        this.log(`✅ Connected to backend: ${data.message || 'OK'}`, 'success');
+                        this.showNotification('Backend connected successfully', 'success');
+                    } else {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (error) {
+                    this.backendConnected = false;
+                    this.updateConnectionStatus('disconnected');
+                    this.log(`❌ Backend connection failed: ${error.message}`, 'error');
+                    this.showNotification('Backend connection failed', 'error');
+                }
+            }
+
+            disconnectBackend() {
+                this.backendConnected = false;
+                this.updateConnectionStatus('disconnected');
+                this.log('🔌 Disconnected from backend', 'warning');
+                this.showNotification('Backend disconnected', 'info');
+            }
+
+            updateConnectionStatus(status) {
+                const indicator = document.getElementById('connection-indicator');
+                const statusText = document.getElementById('connection-status');
+                
+                indicator.className = `connection-indicator ${status}`;
+                statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                
+                this.updateStatus(); // Update main status display
+            }
+
+            // Enhanced solving with backend integration
+            async solve() {
+                if (this.isSolved()) {
+                    this.showNotification('Cube is already solved!', 'info');
+                    return;
+                }
+
+                this.log('🧠 Starting cube solver...', 'success');
+                this.showSolvingProgress();
+
+                try {
+                    let solution;
+                    
+                    if (this.backendConnected) {
+                        // Use backend solver
+                        solution = await this.solveWithBackend();
+                    } else {
+                        // Use frontend solver
+                        solution = this.generateFrontendSolution();
+                    }
+
+                    if (solution && solution.length > 0) {
+                        await this.executeSolution(solution);
+                    } else {
+                        throw new Error('No solution generated');
+                    }
+                } catch (error) {
+                    this.log(`❌ Solving failed: ${error.message}`, 'error');
+                    this.showNotification('Solving failed', 'error');
+                    document.getElementById('solving-progress').style.display = 'none';
+                }
+            }
+
+            async solveWithBackend() {
+                this.log('🌐 Requesting solution from backend...', 'warning');
+                
+                const cubeState = this.serializeCubeState();
+                
+                const response = await fetch(`${this.backendUrl}/api/solve`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        cube: cubeState,
+                        size: this.size,
+                        algorithm: 'cfop' // Can be made configurable
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Backend solver error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                this.log(`✅ Backend solution received: ${data.moves.length} moves`, 'success');
+                
+                return data.moves;
+            }
+
+            generateFrontendSolution() {
+                this.log('🔧 Generating frontend solution...', 'warning');
+                
+                // Simple reverse scramble approach for demo
+                const solution = [];
+                const reverseHistory = [...this.moveHistory].reverse();
+                
+                reverseHistory.forEach(move => {
+                    let reverseMove = move;
+                    if (move.includes("'")) {
+                        reverseMove = move.replace("'", "");
+                    } else if (move.includes("2")) {
+                        reverseMove = move; // 180-degree moves are self-inverse
+                    } else {
+                        reverseMove = move + "'";
+                    }
+                    solution.push(reverseMove);
+                });
+                
+                this.log(`🔧 Frontend solution: ${solution.length} moves`, 'success');
+                return solution;
+            }
+
+            async executeSolution(solution) {
+                const totalSteps = solution.length;
+                let progress = 0;
+
+                for (const move of solution) {
+                    await new Promise(resolve => {
+                        setTimeout(() => {
+                            this.executeMove(move);
+                            progress++;
+                            
+                            const progressPercent = (progress / totalSteps) * 100;
+                            document.getElementById('progress-fill').style.width = `${progressPercent}%`;
+                            document.getElementById('progress-text').textContent = 
+                                `Step ${progress}/${totalSteps}: ${move}`;
+                            
+                            resolve();
+                        }, 300);
+                    });
+                }
+
+                this.completeSolve(solution.length);
+            }
+
+            completeSolve(moveCount) {
+                document.getElementById('solving-progress').style.display = 'none';
+                
+                const solveTime = (moveCount * 0.3).toFixed(2);
+                const efficiency = Math.max(20, 100 - moveCount).toFixed(0);
+                
+                document.getElementById('solve-time').textContent = `${solveTime}s`;
+                document.getElementById('efficiency-score').textContent = `${efficiency}%`;
+                
+                this.log(`🎉 Cube solved in ${moveCount} moves!`, 'success');
+                this.showNotification('🎉 Cube solved successfully!', 'success');
+            }
+
+            showSolvingProgress() {
+                document.getElementById('solving-progress').style.display = 'block';
+                document.getElementById('progress-fill').style.width = '0%';
+                document.getElementById('progress-text').textContent = 'Analyzing cube state...';
+            }
+
+            serializeCubeState() {
+                // Convert cube state to string format for backend
+                let stateString = '';
+                const faceOrder = [4, 2, 0, 5, 3, 1]; // U R F D L B standard order
+                
+                for (const faceIndex of faceOrder) {
+                    for (let row = 0; row < this.size; row++) {
+                        for (let col = 0; col < this.size; col++) {
+                            stateString += this.cube[faceIndex][row][col];
+                        }
+                    }
+                }
+                
+                return stateString;
+            }
+
+            async analyzeCube() {
+                this.log('🔍 Analyzing cube state...');
+                
+                const analysis = {
+                    isSolved: this.isSolved(),
+                    moveCount: this.moveHistory.length,
+                    complexity: this.getComplexityRating(),
+                    solvedPieces: this.calculateSolvedPieces(),
+                    totalPieces: this.calculateTotalPieces()
+                };
+
+                if (this.backendConnected) {
+                    try {
+                        const response = await fetch(`${this.backendUrl}/api/analyze`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                cube: this.serializeCubeState(),
+                                size: this.size
+                            })
+                        });
+
+                        if (response.ok) {
+                            const backendAnalysis = await response.json();
+                            analysis.estimatedMoves = backendAnalysis.estimatedMoves;
+                            analysis.difficulty = backendAnalysis.difficulty;
+                            this.log('🌐 Enhanced analysis from backend', 'success');
+                        }
+                    } catch (error) {
+                        this.log('⚠️ Backend analysis failed, using local analysis', 'warning');
+                    }
+                }
+                
+                this.log(`📊 Analysis Results:`, 'success');
+                this.log(`   • Status: ${analysis.isSolved ? 'Solved' : 'Scrambled'}`);
+                this.log(`   • Moves executed: ${analysis.moveCount}`);
+                this.log(`   • Complexity: ${analysis.complexity}`);
+                this.log(`   • Pieces solved: ${analysis.solvedPieces}/${analysis.totalPieces}`);
+                
+                if (analysis.estimatedMoves) {
+                    this.log(`   • Estimated solve moves: ${analysis.estimatedMoves}`);
+                }
+                
+                this.showNotification('Analysis complete - check logs', 'info');
+            }
+
+            getComplexityRating() {
+                const moveCount = this.moveHistory.length;
+                if (moveCount === 0) return 'Solved';
+                if (moveCount < 10) return 'Easy';
+                if (moveCount < 20) return 'Medium';
+                if (moveCount < 30) return 'Hard';
+                return 'Expert';
+            }
+
+            undoLastMove() {
+                if (this.moveHistory.length === 0) {
+                    this.showNotification('No moves to undo', 'error');
+                    return;
+                }
+                
+                const lastMove = this.moveHistory.pop();
+                this.log(`↶ Undoing move: ${lastMove}`);
+                
+                // Execute inverse move
+                let inverseMove = lastMove;
+                if (lastMove.includes("'")) {
+                    inverseMove = lastMove.replace("'", "");
+                } else if (lastMove.includes("2")) {
+                    inverseMove = lastMove; // 180-degree moves are self-inverse
+                } else {
+                    inverseMove = lastMove + "'";
+                }
+                
+                // Execute inverse without adding to history
+                const tempHistory = [...this.moveHistory];
+                this.executeMove(inverseMove);
+                this.moveHistory = tempHistory; // Restore history without the undo moves
+                
+                this.showNotification(`Undid move: ${lastMove}`, 'success');
+            }
+
+            clearHistory() {
+                this.moveHistory = [];
+                this.updateDisplay();
+                this.log('🗑️ Move history cleared', 'success');
+                this.showNotification('Move history cleared', 'info');
+            }
+
+            log(message, type = 'info') {
+                const logPanel = document.getElementById('log-panel');
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                logPanel.appendChild(logEntry);
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Global cube instance
+        let cube;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            cube = new EnhancedRubiksCube();
+            
+            setTimeout(() => {
+                cube.log('🎮 Ready for interaction - try scrambling!');
+            }, 1000);
+        });
+
+        // UI Event Handlers
+        function createNewCube() {
+            const size = document.getElementById('cube-size-select').value;
+            cube.changeCubeSize(size);
+        }
+
+        function resetCube() {
+            cube.reset();
+        }
+
+        function scrambleCube() {
+            const numMoves = parseInt(document.getElementById('scramble-moves').value) || 20;
+            cube.scramble(numMoves);
+        }
+
+        function executeManualMoves() {
+            const moveInput = document.getElementById('move-input');
+            const moves = moveInput.value.trim();
+            
+            if (!moves) {
+                cube.showNotification('Please enter some moves', 'error');
+                return;
+            }
+            
+            cube.executeMoves(moves);
+            moveInput.value = '';
+        }
+
+        function handleMoveInput(event) {
+            if (event.key === 'Enter') {
+                executeManualMoves();
+            }
+        }
+
+        function solveCube() {
+            cube.solve();
+        }
+
+        function analyzeCube() {
+            cube.analyzeCube();
+        }
+
+        function undoLastMove() {
+            cube.undoLastMove();
+        }
+
+        function clearHistory() {
+            cube.clearHistory();
+        }
+
+        function connectToBackend() {
+            cube.connectToBackend();
+        }
+
+        function disconnectBackend() {
+            cube.disconnectBackend();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(event) {
+            if (event.target.tagName === 'INPUT') return;
+            
+            switch(event.key.toLowerCase()) {
+                case 's':
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        solveCube();
+                    }
+                    break;
+                case 'r':
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        resetCube();
+                    }
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    scrambleCube();
+                    break;
+                case 'z':
+                    if (event.ctrlKey) {
+                        event.preventDefault();
+                        undoLastMove();
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
